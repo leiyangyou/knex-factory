@@ -5,13 +5,14 @@ const factories = { };
 
 function knexFactory(knex) {
   _knex = knex;
-
+  
   return knexFactory;
 }
 
 extend(knexFactory, {
-  define(name, tableName, defaultAttributes) {
-    factories[name] = { tableName, defaultAttributes };
+  define(name, tableName, defaultAttributes, options = {}) {
+    const {primaryKeys = ["id"]} = options
+    factories[name] = { tableName, defaultAttributes, primaryKeys};
   },
 
   async build(factoryName, attributes) {
@@ -46,10 +47,10 @@ extend(knexFactory, {
   async create(factoryName, attributes) {
     const factory = factories[factoryName];
     const insertData = await knexFactory.build(factoryName, attributes);
-    const { tableName } = factory;
-
-    const [id] = await _knex(tableName).insert(insertData);
-    const record = await _knex(tableName).where({ id }).first();
+    const { tableName, primaryKeys } = factory;
+  
+    const [pks] = await _knex(tableName).insert(insertData, primaryKeys);
+    const record = await _knex(tableName).where(pks).first();
 
     return record;
   },
